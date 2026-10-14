@@ -274,7 +274,7 @@
 </div>
 
 <script>
-    // --- MOTOR DE AUDIO WEB API (Sin archivos externos) ---
+    // --- MOTOR DE AUDIO WEB API ---
     let audioCtx = null;
     let isMuted = false;
 
@@ -299,7 +299,6 @@
         gain.connect(audioCtx.destination);
 
         if (type === 'step') {
-            // Tic tic continuo sutil
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(140, now);
             osc.frequency.exponentialRampToValueAtTime(40, now + 0.04);
@@ -308,7 +307,6 @@
             osc.start(now);
             osc.stop(now + 0.04);
         } else if (type === 'collect') {
-            // Beep agudo 880Hz brillante
             osc.type = 'sine';
             osc.frequency.setValueAtTime(880, now);
             osc.frequency.setValueAtTime(1320, now + 0.08);
@@ -317,7 +315,6 @@
             osc.start(now);
             osc.stop(now + 0.25);
         } else if (type === 'win') {
-            // Fanfarria de 3 notas
             const notes = [523.25, 659.25, 783.99, 1046.50];
             notes.forEach((freq, idx) => {
                 let o = audioCtx.createOscillator();
@@ -332,7 +329,6 @@
                 o.stop(now + idx * 0.12 + 0.2);
             });
         } else if (type === 'hit') {
-            // Buzz grave 100Hz choque
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(120, now);
             osc.frequency.linearRampToValueAtTime(40, now + 0.3);
@@ -375,11 +371,10 @@
     let particleSystem = [];
     let floatingTexts = [];
 
-    // Variables de animación de personaje y cámara
     let runFrame = 0;
     let stepTimer = 0;
-    let dashProgress = 0; // -1 izq, 1 der, 0 centro
-    let hitTimer = 0;    // Parpadeo rojo de colisión
+    let dashProgress = 0;
+    let hitTimer = 0;
     let cameraShake = 0;
 
     let touchStartX = 0;
@@ -424,19 +419,16 @@
         gameTime += dt;
         distance += speed * 0.1;
 
-        // Sonido rítmico de carrera por pasos
         stepTimer += speed;
         if (stepTimer > 25) {
             stepTimer = 0;
             playSound('step');
-            // Partículas de polvo naranja bajo los pies del personaje
             createDustParticles();
         }
 
-        // Interpolación de posición de carril y cálculo de inclinación de dash
         let diffX = playerTargetX - playerX;
         playerX += diffX * 0.25;
-        dashProgress = diffX * 0.05; // Inclinación y estela al hacer dash
+        dashProgress = diffX * 0.05;
 
         if (hitTimer > 0) hitTimer -= dt;
         if (cameraShake > 0) cameraShake *= 0.85;
@@ -453,7 +445,6 @@
             spawnEntity();
         }
 
-        // Actualizar entidades
         for (let i = entities.length - 1; i >= 0; i--) {
             let ent = entities[i];
             ent.z -= speed;
@@ -475,7 +466,6 @@
             }
         }
 
-        // Actualizar partículas
         for (let i = particleSystem.length - 1; i >= 0; i--) {
             let p = particleSystem[i];
             p.x += p.vx;
@@ -484,7 +474,6 @@
             if (p.life <= 0) particleSystem.splice(i, 1);
         }
 
-        // Textos flotantes
         for (let i = floatingTexts.length - 1; i >= 0; i--) {
             let ft = floatingTexts[i];
             ft.y -= 1.5;
@@ -533,7 +522,6 @@
         triggerFlash();
         cameraShake = 5;
 
-        // Explosión de partículas naranjas y texto flotante +100 / +150
         createExplosionParticles(playerX, V_HEIGHT - 170, '#FF8C00', 30);
         floatingTexts.push({
             text: "+150",
@@ -552,8 +540,8 @@
     function hitObstacle() {
         lives--;
         score = Math.max(0, score - 250);
-        hitTimer = 0.5; // 0.5s de parpadeo rojo
-        cameraShake = 12; // Cámara con shake suave
+        hitTimer = 0.5;
+        cameraShake = 12;
         playSound('hit');
         createExplosionParticles(playerX, V_HEIGHT - 170, '#ff3300', 35);
         triggerFlashRed();
@@ -635,11 +623,9 @@
         }
     }
 
-    // --- RENDERIZADO GRÁFICO (UPGRADED) ---
     function render() {
         ctx.save();
 
-        // Efecto de cámara con Shake al chocar
         if (cameraShake > 0.5) {
             let shakeX = (Math.random() - 0.5) * cameraShake;
             let shakeY = (Math.random() - 0.5) * cameraShake;
@@ -657,7 +643,7 @@
 
         renderTunnelPerspective();
         renderEntities();
-        renderPlayerUpgraded(); // Personaje mejorado 3x, animado y con estela Dash[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)
+        renderPlayerUpgraded();
         renderParticles();
         renderFloatingTexts();
 
@@ -691,7 +677,6 @@
         ctx.fillStyle = '#080402';
         ctx.fillRect(0, horizonY, V_WIDTH, bottomY - horizonY);
 
-        // Fondo Parallax: líneas naranjas brillando más dinámicamente
         let pulseFactor = 1 + Math.sin(gameTime * 0.2) * 0.1;
 
         for (let i = 0; i < 3; i++) {
@@ -709,7 +694,6 @@
             ctx.shadowBlur = 0;
         }
 
-        // Números 07 08 09 flotantes con efecto de pulso (scale 1.0 a 1.2) y brillo
         let numScale = 1.0 + Math.sin(gameTime * 0.15) * 0.15;
         ctx.save();
         ctx.font = `bold ${Math.floor(24 * numScale)}px "Press Start 2P", monospace`;
@@ -796,7 +780,6 @@
         });
     }
 
-    // 1. PERSONAJE MEJORADO (Sprite 3x más grande, ciclo de carrera 8 frames, estela Dash e inclinación, hit flash rojo)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)
     function renderPlayerUpgraded() {
         let px = playerX;
         let py = V_HEIGHT - 135;
@@ -804,80 +787,65 @@
         ctx.save();
         ctx.translate(px, py);
         
-        // Inclinación lateral al hacer Dash
         ctx.rotate(dashProgress * 0.15);
 
-        // Estela naranja lateral de Dash
         if (Math.abs(dashProgress) > 0.5) {
             ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
             ctx.fillRect(-40 - dashProgress * 15, -20, 30, 60);
         }
 
-        // Sombra en el suelo
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.beginPath();
         ctx.ellipse(0, 62, 28, 10, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Parpadeo rojo si recibe daño (hitTimer)
         if (hitTimer > 0 && Math.floor(gameTime * 20) % 2 === 0) {
             ctx.fillStyle = '#ff3300';
         } else {
             ctx.fillStyle = '#111111';
         }
 
-        // Ciclo de carrera avanzado (8 frames simulados mediante funciones trigonométricas armónicas estilo sprite sheet)[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)
-        runFrame = (gameTime * 0.45) % 8;
-        let legCycle = Math.sin(gameTime * 0.45);
-        let armCycle = Math.cos(gameTime * 0.45);
+        let legCycle = Math.sin(gameTime * 12);
+        let armCycle = Math.cos(gameTime * 12);
 
-        // Cuerpo / Chaqueta principal (3x más grande y detallado)
         ctx.fillRect(-22, -45, 44, 65);
 
-        // Detalles de armadura naranja (pecho y hombreras)
         ctx.fillStyle = hitTimer > 0 ? '#ff6600' : '#FF8C00';
         ctx.fillRect(-18, -32, 36, 8);
         ctx.fillRect(-15, -18, 30, 6);
-        ctx.fillRect(-18, -48, 36, 6); // Cuello / Capucha superior
+        ctx.fillRect(-18, -48, 36, 6);
 
-        // Mochila táctica con luz LED naranja
         ctx.fillStyle = '#1a1a1a';
         ctx.fillRect(-16, -38, 32, 24);
         ctx.fillStyle = '#FF8C00';
         ctx.fillRect(-4, -36, 8, 4);
 
-        // Capucha / Máscara frontal y visor naranja
         ctx.fillStyle = hitTimer > 0 ? '#ff3300' : '#111111';
         ctx.fillRect(-18, -75, 36, 32);
         ctx.strokeStyle = '#FF8C00';
         ctx.lineWidth = 3;
         ctx.strokeRect(-18, -75, 36, 32);
 
-        // Visor táctico brillante
         ctx.fillStyle = '#FF8C00';
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#FF8C00';
         ctx.fillRect(-12, -65, 24, 8);
         ctx.shadowBlur = 0;
 
-        // Brazos con animación de carrera
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(-32, -30 + armCycle * 12, 10, 35);
-        ctx.fillRect(22, -30 - armCycle * 12, 10, 35);
-        // Guantes naranjas
+        ctx.fillRect(-32, -30 + armCycle * 10, 10, 35);
+        ctx.fillRect(22, -30 - armCycle * 10, 10, 35);
         ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-32, 5 + armCycle * 12, 10, 8);
-        ctx.fillRect(22, 5 - armCycle * 12, 10, 8);
+        ctx.fillRect(-32, 5 + armCycle * 10, 10, 8);
+        ctx.fillRect(22, 5 - armCycle * 10, 10, 8);
 
-        // Piernas con animación de ciclo de carrera (Run Cycle 8-frames)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)
         ctx.fillStyle = '#111111';
-        ctx.fillRect(-16, 20 + legCycle * 14, 12, 42);
-        ctx.fillRect(4, 20 - legCycle * 14, 12, 42);
+        ctx.fillRect(-16, 20 + legCycle * 12, 12, 42);
+        ctx.fillRect(4, 20 - legCycle * 12, 12, 42);
 
-        // Botas tácticas blindadas con rodilleras naranjas
         ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-16, 45 + legCycle * 14, 12, 14);
-        ctx.fillRect(4, 45 - legCycle * 14, 12, 14);
+        ctx.fillRect(-16, 45 + legCycle * 12, 12, 14);
+        ctx.fillRect(4, 45 - legCycle * 12, 12, 14);
 
         ctx.restore();
     }
@@ -1041,6 +1009,9 @@
         if (!lastTime) lastTime = timestamp;
         let dt = (timestamp - lastTime) / 1000;
         lastTime = timestamp;
+
+        // [CORRECCIÓN CRÍTICA] Incrementar gameTime para activar las animaciones
+        gameTime += dt;
 
         updateGameLogic(dt);
         render();
