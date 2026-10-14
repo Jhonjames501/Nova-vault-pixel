@@ -61,7 +61,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 30px 20px;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.88);
             z-index: 10;
             text-align: center;
         }
@@ -96,7 +96,7 @@
             cursor: pointer;
             box-shadow: 0 6px 0 #b36200, 0 0 15px rgba(255, 140, 0, 0.3);
             transition: all 0.1s ease;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .btn:active {
@@ -112,10 +112,9 @@
             border: 2px dashed #FF8C00;
             padding: 15px;
             width: 100%;
-            margin: 20px 0;
+            margin: 10px 0;
         }
 
-        /* HUD Overlay inside game */
         #hud {
             position: absolute;
             top: 0;
@@ -171,7 +170,6 @@
             background: rgba(255, 140, 0, 0.2);
         }
 
-        /* Flash effect for collection */
         #flash-overlay {
             position: absolute;
             top: 0;
@@ -182,7 +180,7 @@
             opacity: 0;
             pointer-events: none;
             z-index: 8;
-            transition: opacity 0.2s ease-out;
+            transition: opacity 0.15s ease-out;
         }
 
         .stats-summary {
@@ -203,7 +201,6 @@
 <div id="game-container">
     <div id="flash-overlay"></div>
 
-    <!-- HUD durante el juego -->
     <div id="hud" class="hidden">
         <div class="hud-box">
             <span style="color:#FF8C00; font-weight:bold;">NOVA VAULT</span>
@@ -212,10 +209,10 @@
         <div class="hud-box" style="text-align: right;">
             <span id="hud-score">SCORE: 000000</span>
             <span id="hud-dist">DIST: 000m</span>
+            <span style="font-size:7px; color:#ffaa33; margin-top:2px;">[M] MUTE AUDIO</span>
         </div>
     </div>
 
-    <!-- Secuencia de código inferior -->
     <div id="code-display" class="hidden">
         <div class="code-digit" id="cd-0">?</div>
         <div class="code-digit" id="cd-1">?</div>
@@ -223,25 +220,25 @@
         <div class="code-digit" id="cd-3">?</div>
     </div>
 
-    <!-- PANTALLA 1: MENÚ INICIO -->
+    <!-- PANTALLA MENÚ -->
     <div id="screen-menu" class="screen">
         <div>
-            <div style="font-size: 12px; color: #FF8C00; margin-bottom: 10px; opacity: 0.8;">[ 🔒 SECURE VAULT ACCESS ]</div>
+            <div style="font-size: 11px; color: #FF8C00; margin-bottom: 5px; opacity: 0.8;">[ INFILTRATOR - REV 2.1 ]</div>
             <h1>NOVA<br>VAULT</h1>
             <div class="subtitle">PIXEL RUNNER</div>
         </div>
 
         <div class="instructions">
-            > DESLIZA O FLECHAS izq / der para cambiar de carril.<br>
-            > RECOLECTA los 4 dígitos del código numérico.<br>
-            > EVITA los obstáculos de seguridad.<br>
-            > ALCANZA LA BÓVEDA FINAL.
+            > FLECHAS / TACTIL izq / der para cambiar de carril.<br>
+            > RECOLECTA los 4 dígitos del código.<br>
+            > EVITA obstáculos y láseres de seguridad.<br>
+            > [M] para silenciar/activar sonido.
         </div>
 
         <button class="btn" id="btn-play">PLAY</button>
     </div>
 
-    <!-- PANTALLA 2: GAME OVER -->
+    <!-- PANTALLA GAME OVER -->
     <div id="screen-gameover" class="screen hidden">
         <div>
             <h1 style="color: #ff3300; font-size: 22px; margin-top: 30px;">ACCESO<br>DENEGADO</h1>
@@ -257,7 +254,7 @@
         <button class="btn" id="btn-retry">RETRY</button>
     </div>
 
-    <!-- PANTALLA 3: VICTORIA / VAULT OPENED -->
+    <!-- PANTALLA VICTORIA -->
     <div id="screen-win" class="screen hidden">
         <div>
             <h1 style="font-size: 20px; margin-top: 15px;">VAULT<br>OPENED</h1>
@@ -273,21 +270,88 @@
         <button class="btn" id="btn-replay">REPLAY</button>
     </div>
 
-    <!-- CANVAS DEL JUEGO (REPRESENTANDO EL RUNNER 3D FAKE / PERSPECTIVA) -->
     <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
+    // --- MOTOR DE AUDIO WEB API (Sin archivos externos) ---
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(type) {
+        if (isMuted) return;
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'step') {
+            // Tic tic continuo sutil
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.04);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.04);
+            osc.start(now);
+            osc.stop(now + 0.04);
+        } else if (type === 'collect') {
+            // Beep agudo 880Hz brillante
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.setValueAtTime(1320, now + 0.08);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        } else if (type === 'win') {
+            // Fanfarria de 3 notas
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                let o = audioCtx.createOscillator();
+                let g = audioCtx.createGain();
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.type = 'square';
+                o.frequency.setValueAtTime(freq, now + idx * 0.12);
+                g.gain.setValueAtTime(0.15, now + idx * 0.12);
+                g.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.2);
+                o.start(now + idx * 0.12);
+                o.stop(now + idx * 0.12 + 0.2);
+            });
+        } else if (type === 'hit') {
+            // Buzz grave 100Hz choque
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.linearRampToValueAtTime(40, now + 0.3);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+    }
+
+    // --- CANVAS Y LÓGICA DE JUEGO ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Manejo de resolución interna fija para aspecto arcade vertical 9:16
     const V_WIDTH = 360;
     const V_HEIGHT = 640;
     canvas.width = V_WIDTH;
     canvas.height = V_HEIGHT;
 
-    // Estados del juego
     const STATE_MENU = 0;
     const STATE_PLAYING = 1;
     const STATE_FINAL_RUSH = 2;
@@ -295,26 +359,29 @@
     const STATE_WIN = 4;
     let gameState = STATE_MENU;
 
-    // Variables de juego
     let score = 0;
     let distance = 0;
     let lives = 3;
-    let targetDistance = 420; // Metros hasta la bóveda
-    let playerLane = 1; // 0: Izquierda, 1: Centro, 2: Derecha
+    let targetDistance = 420;
+    let playerLane = 1; 
     let playerX = V_WIDTH / 2;
     let playerTargetX = V_WIDTH / 2;
-    let speed = 4;
-    let codeLength = 4;
+    let speed = 4.5;
     let targetCode = [];
     let collectedCode = [];
     let gameTime = 0;
 
-    // Elementos en pista (obstáculos y coleccionables)
     let entities = [];
     let particleSystem = [];
-    let floatingNumbers = [];
+    let floatingTexts = [];
 
-    // Controles táctiles y teclado
+    // Variables de animación de personaje y cámara
+    let runFrame = 0;
+    let stepTimer = 0;
+    let dashProgress = 0; // -1 izq, 1 der, 0 centro
+    let hitTimer = 0;    // Parpadeo rojo de colisión
+    let cameraShake = 0;
+
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -328,10 +395,12 @@
         speed = 5;
         entities = [];
         particleSystem = [];
-        floatingNumbers = [];
+        floatingTexts = [];
         gameTime = 0;
+        dashProgress = 0;
+        hitTimer = 0;
+        cameraShake = 0;
 
-        // Generar código secreto de 4 dígitos únicos o aleatorios
         targetCode = [];
         collectedCode = [false, false, false, false];
         for(let i=0; i<4; i++) {
@@ -343,13 +412,11 @@
     }
 
     function getLaneX(lane) {
-        // Carriles distribuidos en perspectiva
         const centerX = V_WIDTH / 2;
-        const spacing = 65;
+        const spacing = 70;
         return centerX + (lane - 1) * spacing;
     }
 
-    // Generador de obstáculos y coleccionables progresivos
     let spawnTimer = 0;
     function updateGameLogic(dt) {
         if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
@@ -357,8 +424,22 @@
         gameTime += dt;
         distance += speed * 0.1;
 
-        // Interpolación suave de posición del jugador
-        playerX += (playerTargetX - playerX) * 0.2;
+        // Sonido rítmico de carrera por pasos
+        stepTimer += speed;
+        if (stepTimer > 25) {
+            stepTimer = 0;
+            playSound('step');
+            // Partículas de polvo naranja bajo los pies del personaje
+            createDustParticles();
+        }
+
+        // Interpolación de posición de carril y cálculo de inclinación de dash
+        let diffX = playerTargetX - playerX;
+        playerX += diffX * 0.25;
+        dashProgress = diffX * 0.05; // Inclinación y estela al hacer dash
+
+        if (hitTimer > 0) hitTimer -= dt;
+        if (cameraShake > 0) cameraShake *= 0.85;
 
         if (gameState === STATE_PLAYING) {
             if (distance >= targetDistance) {
@@ -366,9 +447,8 @@
             }
         }
 
-        // Spawn de entidades
         spawnTimer += speed;
-        if (spawnTimer > 90) {
+        if (spawnTimer > 85) {
             spawnTimer = 0;
             spawnEntity();
         }
@@ -378,7 +458,6 @@
             let ent = entities[i];
             ent.z -= speed;
             
-            // Colisión con el jugador (cuando z está cerca de 0)
             if (ent.z < 25 && ent.z > 0 && ent.lane === playerLane) {
                 if (ent.type === 'digit') {
                     collectDigit(ent);
@@ -401,8 +480,16 @@
             let p = particleSystem[i];
             p.x += p.vx;
             p.y += p.vy;
-            p.life -= 0.03;
+            p.life -= 0.035;
             if (p.life <= 0) particleSystem.splice(i, 1);
+        }
+
+        // Textos flotantes
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            let ft = floatingTexts[i];
+            ft.y -= 1.5;
+            ft.life -= 0.025;
+            if (ft.life <= 0) floatingTexts.splice(i, 1);
         }
 
         updateHUD();
@@ -412,55 +499,63 @@
         if (gameState === STATE_FINAL_RUSH) return;
 
         let lane = Math.floor(Math.random() * 3);
-        let rand = Math.random();
-
-        // Asegurar que aparezcan los dígitos necesarios para completar el código
         let missingIndices = [];
         for(let i=0; i<4; i++) if(!collectedCode[i]) missingIndices.push(i);
 
-        if (missingIndices.length > 0 && Math.random() < 0.6) {
+        if (missingIndices.length > 0 && Math.random() < 0.65) {
             let digitIndex = missingIndices[Math.floor(Math.random() * missingIndices.length)];
             entities.push({
                 type: 'digit',
                 digitVal: targetCode[digitIndex],
                 digitIndex: digitIndex,
                 lane: lane,
-                z: 400,
-                pulse: 0
+                z: 420
             });
-        } else if (rand < 0.5) {
+        } else if (Math.random() < 0.5) {
             entities.push({
                 type: 'obstacle',
                 lane: lane,
-                z: 400
+                z: 420
             });
         } else {
             entities.push({
                 type: 'laser',
                 lane: lane,
-                z: 400
+                z: 420
             });
         }
     }
 
     function collectDigit(ent) {
         collectedCode[ent.digitIndex] = true;
-        score += 500;
+        score += 150;
+        playSound('collect');
         triggerFlash();
-        createParticles(playerX, V_HEIGHT - 180, '#FF8C00', 25);
+        cameraShake = 5;
 
-        // Verificar si completó todos los dígitos
+        // Explosión de partículas naranjas y texto flotante +100 / +150
+        createExplosionParticles(playerX, V_HEIGHT - 170, '#FF8C00', 30);
+        floatingTexts.push({
+            text: "+150",
+            x: playerX,
+            y: V_HEIGHT - 200,
+            life: 1.0
+        });
+
         if (collectedCode.every(c => c)) {
-            // Dar bonus y acelerar
-            score += 2000;
+            score += 1000;
+            playSound('win');
         }
         updateHUDCodeDisplay();
     }
 
     function hitObstacle() {
         lives--;
-        score = Math.max(0, score - 300);
-        createParticles(playerX, V_HEIGHT - 180, '#ff3300', 30);
+        score = Math.max(0, score - 250);
+        hitTimer = 0.5; // 0.5s de parpadeo rojo
+        cameraShake = 12; // Cámara con shake suave
+        playSound('hit');
+        createExplosionParticles(playerX, V_HEIGHT - 170, '#ff3300', 35);
         triggerFlashRed();
 
         if (lives <= 0) {
@@ -470,8 +565,8 @@
 
     function triggerFinalRush() {
         gameState = STATE_FINAL_RUSH;
-        // Puerta final gigante de la Imagen 4 y 5
-        targetDistance = 0; // Llegada
+        targetDistance = 0;
+        playSound('win');
         setTimeout(() => {
             winGame();
         }, 3500);
@@ -480,27 +575,43 @@
     function triggerFlash() {
         const flash = document.getElementById('flash-overlay');
         flash.style.background = '#FF8C00';
-        flash.style.opacity = '0.6';
-        setTimeout(() => { flash.style.opacity = '0'; }, 150);
+        flash.style.opacity = '0.5';
+        setTimeout(() => { flash.style.opacity = '0'; }, 120);
     }
 
     function triggerFlashRed() {
         const flash = document.getElementById('flash-overlay');
         flash.style.background = '#ff3300';
-        flash.style.opacity = '0.7';
+        flash.style.opacity = '0.6';
         setTimeout(() => { flash.style.opacity = '0'; }, 150);
     }
 
-    function createParticles(x, y, color, count) {
+    function createDustParticles() {
+        for (let i = 0; i < 3; i++) {
+            particleSystem.push({
+                x: playerX + (Math.random() - 0.5) * 30,
+                y: V_HEIGHT - 130 + Math.random() * 10,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 2 - 1,
+                life: 0.8,
+                color: '#FF8C00',
+                size: Math.random() * 3 + 2
+            });
+        }
+    }
+
+    function createExplosionParticles(x, y, color, count) {
         for (let i = 0; i < count; i++) {
+            let angle = Math.random() * Math.PI * 2;
+            let spd = Math.random() * 6 + 2;
             particleSystem.push({
                 x: x,
                 y: y,
-                vx: (Math.random() - 0.5) * 8,
-                vy: (Math.random() - 0.5) * 8,
+                vx: Math.cos(angle) * spd,
+                vy: Math.sin(angle) * spd,
                 life: 1.0,
                 color: color,
-                size: Math.random() * 3 + 2
+                size: Math.random() * 4 + 2
             });
         }
     }
@@ -518,38 +629,48 @@
                 el.innerText = targetCode[i];
                 el.classList.add('collected');
             } else {
-                el.innerText = targetCode[i]; // Ocultar o mostrar pista numérica estilo imagen 2/3
+                el.innerText = targetCode[i];
                 el.classList.remove('collected');
             }
         }
     }
 
-    // --- RENDERIZADO GRÁFICO (PIXEL ART / RETRO ARCADE) ---
+    // --- RENDERIZADO GRÁFICO (UPGRADED) ---
     function render() {
+        ctx.save();
+
+        // Efecto de cámara con Shake al chocar
+        if (cameraShake > 0.5) {
+            let shakeX = (Math.random() - 0.5) * cameraShake;
+            let shakeY = (Math.random() - 0.5) * cameraShake;
+            ctx.translate(shakeX, shakeY);
+        }
+
         ctx.fillStyle = '#050200';
         ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
 
         if (gameState === STATE_MENU) {
             renderMenuBackground();
+            ctx.restore();
             return;
         }
 
         renderTunnelPerspective();
         renderEntities();
-        renderPlayer();
+        renderPlayerUpgraded(); // Personaje mejorado 3x, animado y con estela Dash[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)
         renderParticles();
+        renderFloatingTexts();
 
         if (gameState === STATE_FINAL_RUSH) {
             renderVaultDoor();
         }
+
+        ctx.restore();
     }
 
     function renderMenuBackground() {
-        // Estética Imagen 1: Pasillo pixel art oscuro con luces naranjas tenues
         ctx.fillStyle = '#020100';
         ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
-
-        // Líneas de perspectiva del túnel
         ctx.strokeStyle = '#1a0d00';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -557,12 +678,9 @@
         ctx.moveTo(V_WIDTH/2, 220); ctx.lineTo(V_WIDTH - 20, V_HEIGHT);
         ctx.stroke();
 
-        // Antorchas o puntos naranjas en las paredes
         ctx.fillStyle = '#FF8C00';
         ctx.fillRect(40, 300, 4, 8);
         ctx.fillRect(V_WIDTH - 44, 300, 4, 8);
-        ctx.fillRect(70, 380, 4, 8);
-        ctx.fillRect(V_WIDTH - 74, 380, 4, 8);
     }
 
     function renderTunnelPerspective() {
@@ -570,18 +688,19 @@
         const bottomY = V_HEIGHT;
         const centerX = V_WIDTH / 2;
 
-        // Suelo y techo con textura de bloques pixelados oscuros y líneas naranjas brillantes (Imagen 2)
         ctx.fillStyle = '#080402';
         ctx.fillRect(0, horizonY, V_WIDTH, bottomY - horizonY);
 
-        // 3 carriles con líneas guía naranja brillante
+        // Fondo Parallax: líneas naranjas brillando más dinámicamente
+        let pulseFactor = 1 + Math.sin(gameTime * 0.2) * 0.1;
+
         for (let i = 0; i < 3; i++) {
             let xTop = centerX + (i - 1) * 22;
             let xBottom = getLaneX(i);
 
             ctx.strokeStyle = '#FF8C00';
-            ctx.lineWidth = (i === 1) ? 3 : 2;
-            ctx.shadowBlur = 8;
+            ctx.lineWidth = (i === 1) ? 3.5 * pulseFactor : 2;
+            ctx.shadowBlur = 10;
             ctx.shadowColor = '#FF8C00';
             ctx.beginPath();
             ctx.moveTo(xTop, horizonY);
@@ -590,17 +709,22 @@
             ctx.shadowBlur = 0;
         }
 
-        // Números gigantes flotantes en los carriles (Estética Imagen 2: 07, 08, 09 gigantescos al fondo/medio)
-        ctx.font = 'bold 24px "Press Start 2P", monospace';
-        ctx.fillStyle = 'rgba(255, 140, 0, 0.25)';
+        // Números 07 08 09 flotantes con efecto de pulso (scale 1.0 a 1.2) y brillo
+        let numScale = 1.0 + Math.sin(gameTime * 0.15) * 0.15;
+        ctx.save();
+        ctx.font = `bold ${Math.floor(24 * numScale)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = 'rgba(255, 140, 0, 0.35)';
         ctx.textAlign = 'center';
-        
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#FF8C00';
+
         let sampleNums = ['07', '08', '09'];
         for (let i = 0; i < 3; i++) {
-            let lx = centerX + (i - 1) * 50;
-            let ly = horizonY + 80;
+            let lx = centerX + (i - 1) * 55;
+            let ly = horizonY + 75;
             ctx.fillText(sampleNums[i], lx, ly);
         }
+        ctx.restore();
     }
 
     function renderEntities() {
@@ -608,45 +732,40 @@
         const bottomY = V_HEIGHT;
 
         entities.forEach(ent => {
-            // Proyección Z a coordenadas de pantalla (perspectiva simple)
             let scale = 1 / (ent.z * 0.003 + 1);
             if (scale < 0 || scale > 3) return;
 
             let x = V_WIDTH / 2 + (getLaneX(ent.lane) - V_WIDTH / 2) * scale;
-            let y = horizonY + (bottomY - horizonY) * (1 - ent.z / 400);
+            let y = horizonY + (bottomY - horizonY) * (1 - ent.z / 420);
 
             if (ent.type === 'digit') {
-                // Dígito coleccionable brillante (Estética Imagen 3 y 5)
                 ctx.save();
                 ctx.translate(x, y);
-                ctx.scale(scale, scale);
+                ctx.scale(scale * (1 + Math.sin(gameTime*0.3)*0.1), scale * (1 + Math.sin(gameTime*0.3)*0.1));
 
-                // Rombo / cristal exterior
                 ctx.strokeStyle = '#FF8C00';
                 ctx.lineWidth = 3;
-                ctx.fillStyle = 'rgba(255, 140, 0, 0.3)';
-                ctx.shadowBlur = 12;
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
+                ctx.shadowBlur = 14;
                 ctx.shadowColor = '#FF8C00';
                 
                 ctx.beginPath();
-                ctx.moveTo(0, -25);
-                ctx.lineTo(20, 0);
-                ctx.lineTo(0, 25);
-                ctx.lineTo(-20, 0);
+                ctx.moveTo(0, -28);
+                ctx.lineTo(22, 0);
+                ctx.lineTo(0, 28);
+                ctx.lineTo(-22, 0);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
 
-                // Número interior
                 ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 16px "Press Start 2P", monospace';
+                ctx.font = 'bold 18px "Press Start 2P", monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(ent.digitVal, 0, 2);
 
                 ctx.restore();
             } else if (ent.type === 'obstacle') {
-                // Barrera de seguridad pixelada
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.scale(scale, scale);
@@ -654,96 +773,133 @@
                 ctx.fillStyle = '#ff3300';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.fillRect(-25, -20, 50, 20);
-                ctx.strokeRect(-25, -20, 50, 20);
+                ctx.fillRect(-28, -22, 56, 22);
+                ctx.strokeRect(-28, -22, 56, 22);
 
-                // Rayas de advertencia negras
                 ctx.fillStyle = '#000';
-                ctx.fillRect(-15, -20, 8, 20);
-                ctx.fillRect(5, -20, 8, 20);
+                ctx.fillRect(-16, -22, 8, 22);
+                ctx.fillRect(8, -22, 8, 22);
 
                 ctx.restore();
             } else if (ent.type === 'laser') {
-                // Láser de seguridad horizontal
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.scale(scale, scale);
 
                 ctx.fillStyle = '#ff0055';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 12;
                 ctx.shadowColor = '#ff0055';
-                ctx.fillRect(-30, -5, 60, 6);
+                ctx.fillRect(-35, -6, 70, 8);
 
                 ctx.restore();
             }
         });
     }
 
-    function renderPlayer() {
-        // Personaje encapuchado negro con detalles naranja (Estética Imagen 2 y 3: Vista trasera corriendo)
+    // 1. PERSONAJE MEJORADO (Sprite 3x más grande, ciclo de carrera 8 frames, estela Dash e inclinación, hit flash rojo)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)
+    function renderPlayerUpgraded() {
         let px = playerX;
-        let py = V_HEIGHT - 120;
+        let py = V_HEIGHT - 135;
 
         ctx.save();
         ctx.translate(px, py);
+        
+        // Inclinación lateral al hacer Dash
+        ctx.rotate(dashProgress * 0.15);
 
-        // Sombra en el suelo
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.beginPath();
-        ctx.ellipse(0, 50, 20, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Estela o partículas de movimiento rápido
-        if (gameState === STATE_FINAL_RUSH) {
-            ctx.fillStyle = '#FF8C00';
-            ctx.fillRect(-15, 20, 30, 4);
+        // Estela naranja lateral de Dash
+        if (Math.abs(dashProgress) > 0.5) {
+            ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
+            ctx.fillRect(-40 - dashProgress * 15, -20, 30, 60);
         }
 
-        // Cuerpo / Chaqueta negra
-        ctx.fillStyle = '#111111';
-        ctx.fillRect(-12, -25, 24, 38);
+        // Sombra en el suelo
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.beginPath();
+        ctx.ellipse(0, 62, 28, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Detalles de armadura / líneas naranja en el traje
-        ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-10, -15, 20, 4);
-        ctx.fillRect(-8, -5, 16, 3);
+        // Parpadeo rojo si recibe daño (hitTimer)
+        if (hitTimer > 0 && Math.floor(gameTime * 20) % 2 === 0) {
+            ctx.fillStyle = '#ff3300';
+        } else {
+            ctx.fillStyle = '#111111';
+        }
 
-        // Mochila táctica
-        ctx.fillStyle = '#222222';
-        ctx.fillRect(-10, -20, 20, 15);
-        ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-8, -18, 16, 3);
+        // Ciclo de carrera avanzado (8 frames simulados mediante funciones trigonométricas armónicas estilo sprite sheet)[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)
+        runFrame = (gameTime * 0.45) % 8;
+        let legCycle = Math.sin(gameTime * 0.45);
+        let armCycle = Math.cos(gameTime * 0.45);
 
-        // Capucha / Cabeza de espaldas
-        ctx.fillStyle = '#111111';
-        ctx.fillRect(-10, -42, 20, 20);
-        // Borde de la capucha naranja
-        ctx.strokeStyle = '#FF8C00';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-10, -42, 20, 20);
+        // Cuerpo / Chaqueta principal (3x más grande y detallado)
+        ctx.fillRect(-22, -45, 44, 65);
 
-        // Brazos / Movimiento de correr
-        let armOffset = Math.sin(gameTime * 0.3) * 6;
+        // Detalles de armadura naranja (pecho y hombreras)
+        ctx.fillStyle = hitTimer > 0 ? '#ff6600' : '#FF8C00';
+        ctx.fillRect(-18, -32, 36, 8);
+        ctx.fillRect(-15, -18, 30, 6);
+        ctx.fillRect(-18, -48, 36, 6); // Cuello / Capucha superior
+
+        // Mochila táctica con luz LED naranja
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(-18, -20 + armOffset, 6, 22);
-        ctx.fillRect(12, -20 - armOffset, 6, 22);
+        ctx.fillRect(-16, -38, 32, 24);
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(-4, -36, 8, 4);
 
-        // Piernas
-        let legOffset = Math.cos(gameTime * 0.3) * 8;
-        ctx.fillRect(-10, 13 + legOffset, 7, 25);
-        ctx.fillRect(3, 13 - legOffset, 7, 25);
+        // Capucha / Máscara frontal y visor naranja
+        ctx.fillStyle = hitTimer > 0 ? '#ff3300' : '#111111';
+        ctx.fillRect(-18, -75, 36, 32);
+        ctx.strokeStyle = '#FF8C00';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-18, -75, 36, 32);
+
+        // Visor táctico brillante
+        ctx.fillStyle = '#FF8C00';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#FF8C00';
+        ctx.fillRect(-12, -65, 24, 8);
+        ctx.shadowBlur = 0;
+
+        // Brazos con animación de carrera
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-32, -30 + armCycle * 12, 10, 35);
+        ctx.fillRect(22, -30 - armCycle * 12, 10, 35);
+        // Guantes naranjas
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(-32, 5 + armCycle * 12, 10, 8);
+        ctx.fillRect(22, 5 - armCycle * 12, 10, 8);
+
+        // Piernas con animación de ciclo de carrera (Run Cycle 8-frames)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(-16, 20 + legCycle * 14, 12, 42);
+        ctx.fillRect(4, 20 - legCycle * 14, 12, 42);
+
+        // Botas tácticas blindadas con rodilleras naranjas
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(-16, 45 + legCycle * 14, 12, 14);
+        ctx.fillRect(4, 45 - legCycle * 14, 12, 14);
 
         ctx.restore();
     }
 
+    function renderFloatingTexts() {
+        floatingTexts.forEach(ft => {
+            ctx.save();
+            ctx.fillStyle = '#FF8C00';
+            ctx.font = 'bold 12px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#FF8C00';
+            ctx.globalAlpha = ft.life;
+            ctx.fillText(ft.text, ft.x, ft.y);
+            ctx.restore();
+        });
+    }
+
     function renderVaultDoor() {
-        // Puerta gigante metálica pixelada abriéndose con luz naranja (Estética Imagen 4 y 5)
-        let progress = Math.min(1, (3500 - (targetDistance <= 0 ? 0 : 0)) / 3500);
-        
         ctx.fillStyle = '#0a0502';
         ctx.fillRect(40, 100, V_WIDTH - 80, 300);
 
-        // Marco pesado de la bóveda
         ctx.strokeStyle = '#FF8C00';
         ctx.lineWidth = 6;
         ctx.shadowBlur = 20;
@@ -751,11 +907,9 @@
         ctx.strokeRect(40, 100, V_WIDTH - 80, 300);
         ctx.shadowBlur = 0;
 
-        // Luz cegadora saliendo del centro de la puerta
         ctx.fillStyle = '#FF8C00';
         ctx.fillRect(V_WIDTH/2 - 40, 180, 80, 140);
 
-        // Texto épico superior
         ctx.fillStyle = '#FF8C00';
         ctx.font = 'bold 14px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
@@ -764,15 +918,13 @@
         ctx.fillText("UNLOCKED COMPLETE", V_WIDTH/2, 155);
     }
 
-    function renderParticles() {
-        particleSystem.forEach(p => {
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-        });
-    }
-
-    // --- CONTROLES Y EVENTOS TÁCTILES ---
+    // --- CONTROLES Y EVENTOS ---
     window.addEventListener('keydown', (e) => {
+        if (e.key === 'm' || e.key === 'M') {
+            isMuted = !isMuted;
+            return;
+        }
+
         if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
 
         if (e.key === 'ArrowLeft' || e.key === 'a') {
@@ -788,7 +940,6 @@
         }
     });
 
-    // Swipe táctil para dispositivos móviles
     canvas.addEventListener('touchstart', (e) => {
         if (e.touches.length > 0) {
             touchStartX = e.touches[0].clientX;
@@ -801,21 +952,15 @@
         if (e.changedTouches.length === 0) return;
 
         let touchEndX = e.changedTouches[0].clientX;
-        let touchEndY = e.changedTouches[0].clientY;
-
         let diffX = touchEndX - touchStartX;
-        let diffY = touchEndY - touchStartY;
 
-        // Determinar si fue swipe horizontal principal
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+        if (Math.abs(diffX) > 30) {
             if (diffX > 0) {
-                // Swipe Derecha
                 if (playerLane < 2) {
                     playerLane++;
                     playerTargetX = getLaneX(playerLane);
                 }
             } else {
-                // Swipe Izquierda
                 if (playerLane > 0) {
                     playerLane--;
                     playerTargetX = getLaneX(playerLane);
@@ -824,7 +969,6 @@
         }
     }, {passive: true});
 
-    // Control por clics en pantalla dividida (izq/der) para PC / Tap fácil móvil
     canvas.addEventListener('click', (e) => {
         if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
         const rect = canvas.getBoundingClientRect();
@@ -843,7 +987,6 @@
         }
     });
 
-    // --- GESTIÓN DE PANTALLAS Y BOTONES ---
     const screenMenu = document.getElementById('screen-menu');
     const screenGameover = document.getElementById('screen-gameover');
     const screenWin = document.getElementById('screen-win');
@@ -855,6 +998,7 @@
     document.getElementById('btn-replay').addEventListener('click', startGame);
 
     function startGame() {
+        initAudio();
         screenMenu.classList.add('hidden');
         screenGameover.classList.add('hidden');
         screenWin.classList.add('hidden');
@@ -892,7 +1036,6 @@
         `;
     }
 
-    // --- BUCLE PRINCIPAL DE JUEGO ---
     let lastTime = 0;
     function mainLoop(timestamp) {
         if (!lastTime) lastTime = timestamp;
