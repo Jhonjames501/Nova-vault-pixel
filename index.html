@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NOVA VAULT - Pixel Runner</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000000;
+            color: #FF8C00;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            max-height: 800px;
+            position: relative;
+            background: #000000;
+            border: 4px solid #FF8C00;
+            box-shadow: 0 0 25px rgba(255, 140, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #050200;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 20px;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #FF8C00;
+            text-shadow: 3px 3px #000, 0 0 15px rgba(255, 140, 0, 0.7);
+            line-height: 1.4;
+            margin-top: 20px;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: #FF8C00;
+            letter-spacing: 2px;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .btn {
+            background: #000;
+            color: #FF8C00;
+            border: 4px solid #FF8C00;
+            padding: 16px 32px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b36200, 0 0 15px rgba(255, 140, 0, 0.3);
+            transition: all 0.1s ease;
+            margin-bottom: 30px;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b36200, 0 0 10px rgba(255, 140, 0, 0.5);
+        }
+
+        .instructions {
+            font-size: 8px;
+            color: #ffaa33;
+            line-height: 1.8;
+            background: rgba(255, 140, 0, 0.1);
+            border: 2px dashed #FF8C00;
+            padding: 15px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        /* HUD Overlay inside game */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 5;
+            font-size: 9px;
+            text-shadow: 2px 2px #000;
+            border-bottom: 2px solid rgba(255, 140, 0, 0.3);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+
+        .hud-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #code-display {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .code-digit {
+            width: 35px;
+            height: 45px;
+            border: 2px solid #FF8C00;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #442200;
+            box-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
+        }
+
+        .code-digit.collected {
+            color: #FF8C00;
+            border-color: #FF8C00;
+            text-shadow: 0 0 8px #FF8C00;
+            background: rgba(255, 140, 0, 0.2);
+        }
+
+        /* Flash effect for collection */
+        #flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FF8C00;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 8;
+            transition: opacity 0.2s ease-out;
+        }
+
+        .stats-summary {
+            font-size: 9px;
+            line-height: 2;
+            color: #ffaa33;
+            margin: 15px 0;
+            text-align: left;
+            background: rgba(255, 140, 0, 0.05);
+            padding: 10px;
+            border: 1px solid #FF8C00;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="flash-overlay"></div>
+
+    <!-- HUD durante el juego -->
+    <div id="hud" class="hidden">
+        <div class="hud-box">
+            <span style="color:#FF8C00; font-weight:bold;">NOVA VAULT</span>
+            <span id="hud-lives">LIVES: ❤️❤️❤️</span>
+        </div>
+        <div class="hud-box" style="text-align: right;">
+            <span id="hud-score">SCORE: 000000</span>
+            <span id="hud-dist">DIST: 000m</span>
+        </div>
+    </div>
+
+    <!-- Secuencia de código inferior -->
+    <div id="code-display" class="hidden">
+        <div class="code-digit" id="cd-0">?</div>
+        <div class="code-digit" id="cd-1">?</div>
+        <div class="code-digit" id="cd-2">?</div>
+        <div class="code-digit" id="cd-3">?</div>
+    </div>
+
+    <!-- PANTALLA 1: MENÚ INICIO -->
+    <div id="screen-menu" class="screen">
+        <div>
+            <div style="font-size: 12px; color: #FF8C00; margin-bottom: 10px; opacity: 0.8;">[ 🔒 SECURE VAULT ACCESS ]</div>
+            <h1>NOVA<br>VAULT</h1>
+            <div class="subtitle">PIXEL RUNNER</div>
+        </div>
+
+        <div class="instructions">
+            > DESLIZA O FLECHAS izq / der para cambiar de carril.<br>
+            > RECOLECTA los 4 dígitos del código numérico.<br>
+            > EVITA los obstáculos de seguridad.<br>
+            > ALCANZA LA BÓVEDA FINAL.
+        </div>
+
+        <button class="btn" id="btn-play">PLAY</button>
+    </div>
+
+    <!-- PANTALLA 2: GAME OVER -->
+    <div id="screen-gameover" class="screen hidden">
+        <div>
+            <h1 style="color: #ff3300; font-size: 22px; margin-top: 30px;">ACCESO<br>DENEGADO</h1>
+            <div class="subtitle" style="color: #ff3300;">SISTEMA BLOQUEADO</div>
+        </div>
+
+        <div class="stats-summary" id="go-stats">
+            SCORE: 0<br>
+            DISTANCIA: 0m<br>
+            CÓDIGO: 0/4
+        </div>
+
+        <button class="btn" id="btn-retry">RETRY</button>
+    </div>
+
+    <!-- PANTALLA 3: VICTORIA / VAULT OPENED -->
+    <div id="screen-win" class="screen hidden">
+        <div>
+            <h1 style="font-size: 20px; margin-top: 15px;">VAULT<br>OPENED</h1>
+            <div class="subtitle">ACCESO TOTAL CONCEDIDO</div>
+        </div>
+
+        <div class="stats-summary" id="win-stats">
+            LOOT +1240<br>
+            TIME: 01:23<br>
+            STEALTH RATING: S+
+        </div>
+
+        <button class="btn" id="btn-replay">REPLAY</button>
+    </div>
+
+    <!-- CANVAS DEL JUEGO (REPRESENTANDO EL RUNNER 3D FAKE / PERSPECTIVA) -->
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Manejo de resolución interna fija para aspecto arcade vertical 9:16
+    const V_WIDTH = 360;
+    const V_HEIGHT = 640;
+    canvas.width = V_WIDTH;
+    canvas.height = V_HEIGHT;
+
+    // Estados del juego
+    const STATE_MENU = 0;
+    const STATE_PLAYING = 1;
+    const STATE_FINAL_RUSH = 2;
+    const STATE_GAMEOVER = 3;
+    const STATE_WIN = 4;
+    let gameState = STATE_MENU;
+
+    // Variables de juego
+    let score = 0;
+    let distance = 0;
+    let lives = 3;
+    let targetDistance = 420; // Metros hasta la bóveda
+    let playerLane = 1; // 0: Izquierda, 1: Centro, 2: Derecha
+    let playerX = V_WIDTH / 2;
+    let playerTargetX = V_WIDTH / 2;
+    let speed = 4;
+    let codeLength = 4;
+    let targetCode = [];
+    let collectedCode = [];
+    let gameTime = 0;
+
+    // Elementos en pista (obstáculos y coleccionables)
+    let entities = [];
+    let particleSystem = [];
+    let floatingNumbers = [];
+
+    // Controles táctiles y teclado
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    function initGame() {
+        score = 0;
+        distance = 0;
+        lives = 3;
+        playerLane = 1;
+        playerX = getLaneX(playerLane);
+        playerTargetX = playerX;
+        speed = 5;
+        entities = [];
+        particleSystem = [];
+        floatingNumbers = [];
+        gameTime = 0;
+
+        // Generar código secreto de 4 dígitos únicos o aleatorios
+        targetCode = [];
+        collectedCode = [false, false, false, false];
+        for(let i=0; i<4; i++) {
+            targetCode.push(Math.floor(Math.random() * 9) + 1);
+        }
+
+        updateHUDCodeDisplay();
+        updateHUD();
+    }
+
+    function getLaneX(lane) {
+        // Carriles distribuidos en perspectiva
+        const centerX = V_WIDTH / 2;
+        const spacing = 65;
+        return centerX + (lane - 1) * spacing;
+    }
+
+    // Generador de obstáculos y coleccionables progresivos
+    let spawnTimer = 0;
+    function updateGameLogic(dt) {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+
+        gameTime += dt;
+        distance += speed * 0.1;
+
+        // Interpolación suave de posición del jugador
+        playerX += (playerTargetX - playerX) * 0.2;
+
+        if (gameState === STATE_PLAYING) {
+            if (distance >= targetDistance) {
+                triggerFinalRush();
+            }
+        }
+
+        // Spawn de entidades
+        spawnTimer += speed;
+        if (spawnTimer > 90) {
+            spawnTimer = 0;
+            spawnEntity();
+        }
+
+        // Actualizar entidades
+        for (let i = entities.length - 1; i >= 0; i--) {
+            let ent = entities[i];
+            ent.z -= speed;
+            
+            // Colisión con el jugador (cuando z está cerca de 0)
+            if (ent.z < 25 && ent.z > 0 && ent.lane === playerLane) {
+                if (ent.type === 'digit') {
+                    collectDigit(ent);
+                    entities.splice(i, 1);
+                    continue;
+                } else if (ent.type === 'obstacle' || ent.type === 'laser') {
+                    hitObstacle();
+                    entities.splice(i, 1);
+                    continue;
+                }
+            }
+
+            if (ent.z < -20) {
+                entities.splice(i, 1);
+            }
+        }
+
+        // Actualizar partículas
+        for (let i = particleSystem.length - 1; i >= 0; i--) {
+            let p = particleSystem[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.03;
+            if (p.life <= 0) particleSystem.splice(i, 1);
+        }
+
+        updateHUD();
+    }
+
+    function spawnEntity() {
+        if (gameState === STATE_FINAL_RUSH) return;
+
+        let lane = Math.floor(Math.random() * 3);
+        let rand = Math.random();
+
+        // Asegurar que aparezcan los dígitos necesarios para completar el código
+        let missingIndices = [];
+        for(let i=0; i<4; i++) if(!collectedCode[i]) missingIndices.push(i);
+
+        if (missingIndices.length > 0 && Math.random() < 0.6) {
+            let digitIndex = missingIndices[Math.floor(Math.random() * missingIndices.length)];
+            entities.push({
+                type: 'digit',
+                digitVal: targetCode[digitIndex],
+                digitIndex: digitIndex,
+                lane: lane,
+                z: 400,
+                pulse: 0
+            });
+        } else if (rand < 0.5) {
+            entities.push({
+                type: 'obstacle',
+                lane: lane,
+                z: 400
+            });
+        } else {
+            entities.push({
+                type: 'laser',
+                lane: lane,
+                z: 400
+            });
+        }
+    }
+
+    function collectDigit(ent) {
+        collectedCode[ent.digitIndex] = true;
+        score += 500;
+        triggerFlash();
+        createParticles(playerX, V_HEIGHT - 180, '#FF8C00', 25);
+
+        // Verificar si completó todos los dígitos
+        if (collectedCode.every(c => c)) {
+            // Dar bonus y acelerar
+            score += 2000;
+        }
+        updateHUDCodeDisplay();
+    }
+
+    function hitObstacle() {
+        lives--;
+        score = Math.max(0, score - 300);
+        createParticles(playerX, V_HEIGHT - 180, '#ff3300', 30);
+        triggerFlashRed();
+
+        if (lives <= 0) {
+            gameOver();
+        }
+    }
+
+    function triggerFinalRush() {
+        gameState = STATE_FINAL_RUSH;
+        // Puerta final gigante de la Imagen 4 y 5
+        targetDistance = 0; // Llegada
+        setTimeout(() => {
+            winGame();
+        }, 3500);
+    }
+
+    function triggerFlash() {
+        const flash = document.getElementById('flash-overlay');
+        flash.style.background = '#FF8C00';
+        flash.style.opacity = '0.6';
+        setTimeout(() => { flash.style.opacity = '0'; }, 150);
+    }
+
+    function triggerFlashRed() {
+        const flash = document.getElementById('flash-overlay');
+        flash.style.background = '#ff3300';
+        flash.style.opacity = '0.7';
+        setTimeout(() => { flash.style.opacity = '0'; }, 150);
+    }
+
+    function createParticles(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            particleSystem.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: 1.0,
+                color: color,
+                size: Math.random() * 3 + 2
+            });
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('hud-lives').innerText = 'LIVES: ' + '❤️'.repeat(Math.max(0, lives));
+        document.getElementById('hud-score').innerText = 'SCORE: ' + String(score).padStart(6, '0');
+        document.getElementById('hud-dist').innerText = 'DIST: ' + Math.max(0, Math.floor(targetDistance - distance)) + 'm';
+    }
+
+    function updateHUDCodeDisplay() {
+        for (let i = 0; i < 4; i++) {
+            const el = document.getElementById('cd-' + i);
+            if (collectedCode[i]) {
+                el.innerText = targetCode[i];
+                el.classList.add('collected');
+            } else {
+                el.innerText = targetCode[i]; // Ocultar o mostrar pista numérica estilo imagen 2/3
+                el.classList.remove('collected');
+            }
+        }
+    }
+
+    // --- RENDERIZADO GRÁFICO (PIXEL ART / RETRO ARCADE) ---
+    function render() {
+        ctx.fillStyle = '#050200';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        if (gameState === STATE_MENU) {
+            renderMenuBackground();
+            return;
+        }
+
+        renderTunnelPerspective();
+        renderEntities();
+        renderPlayer();
+        renderParticles();
+
+        if (gameState === STATE_FINAL_RUSH) {
+            renderVaultDoor();
+        }
+    }
+
+    function renderMenuBackground() {
+        // Estética Imagen 1: Pasillo pixel art oscuro con luces naranjas tenues
+        ctx.fillStyle = '#020100';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        // Líneas de perspectiva del túnel
+        ctx.strokeStyle = '#1a0d00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(V_WIDTH/2, 220); ctx.lineTo(20, V_HEIGHT);
+        ctx.moveTo(V_WIDTH/2, 220); ctx.lineTo(V_WIDTH - 20, V_HEIGHT);
+        ctx.stroke();
+
+        // Antorchas o puntos naranjas en las paredes
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(40, 300, 4, 8);
+        ctx.fillRect(V_WIDTH - 44, 300, 4, 8);
+        ctx.fillRect(70, 380, 4, 8);
+        ctx.fillRect(V_WIDTH - 74, 380, 4, 8);
+    }
+
+    function renderTunnelPerspective() {
+        const horizonY = 200;
+        const bottomY = V_HEIGHT;
+        const centerX = V_WIDTH / 2;
+
+        // Suelo y techo con textura de bloques pixelados oscuros y líneas naranjas brillantes (Imagen 2)
+        ctx.fillStyle = '#080402';
+        ctx.fillRect(0, horizonY, V_WIDTH, bottomY - horizonY);
+
+        // 3 carriles con líneas guía naranja brillante
+        for (let i = 0; i < 3; i++) {
+            let xTop = centerX + (i - 1) * 22;
+            let xBottom = getLaneX(i);
+
+            ctx.strokeStyle = '#FF8C00';
+            ctx.lineWidth = (i === 1) ? 3 : 2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#FF8C00';
+            ctx.beginPath();
+            ctx.moveTo(xTop, horizonY);
+            ctx.lineTo(xBottom, bottomY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // Números gigantes flotantes en los carriles (Estética Imagen 2: 07, 08, 09 gigantescos al fondo/medio)
+        ctx.font = 'bold 24px "Press Start 2P", monospace';
+        ctx.fillStyle = 'rgba(255, 140, 0, 0.25)';
+        ctx.textAlign = 'center';
+        
+        let sampleNums = ['07', '08', '09'];
+        for (let i = 0; i < 3; i++) {
+            let lx = centerX + (i - 1) * 50;
+            let ly = horizonY + 80;
+            ctx.fillText(sampleNums[i], lx, ly);
+        }
+    }
+
+    function renderEntities() {
+        const horizonY = 200;
+        const bottomY = V_HEIGHT;
+
+        entities.forEach(ent => {
+            // Proyección Z a coordenadas de pantalla (perspectiva simple)
+            let scale = 1 / (ent.z * 0.003 + 1);
+            if (scale < 0 || scale > 3) return;
+
+            let x = V_WIDTH / 2 + (getLaneX(ent.lane) - V_WIDTH / 2) * scale;
+            let y = horizonY + (bottomY - horizonY) * (1 - ent.z / 400);
+
+            if (ent.type === 'digit') {
+                // Dígito coleccionable brillante (Estética Imagen 3 y 5)
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.scale(scale, scale);
+
+                // Rombo / cristal exterior
+                ctx.strokeStyle = '#FF8C00';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.3)';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#FF8C00';
+                
+                ctx.beginPath();
+                ctx.moveTo(0, -25);
+                ctx.lineTo(20, 0);
+                ctx.lineTo(0, 25);
+                ctx.lineTo(-20, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Número interior
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(ent.digitVal, 0, 2);
+
+                ctx.restore();
+            } else if (ent.type === 'obstacle') {
+                // Barrera de seguridad pixelada
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.scale(scale, scale);
+
+                ctx.fillStyle = '#ff3300';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.fillRect(-25, -20, 50, 20);
+                ctx.strokeRect(-25, -20, 50, 20);
+
+                // Rayas de advertencia negras
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-15, -20, 8, 20);
+                ctx.fillRect(5, -20, 8, 20);
+
+                ctx.restore();
+            } else if (ent.type === 'laser') {
+                // Láser de seguridad horizontal
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.scale(scale, scale);
+
+                ctx.fillStyle = '#ff0055';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff0055';
+                ctx.fillRect(-30, -5, 60, 6);
+
+                ctx.restore();
+            }
+        });
+    }
+
+    function renderPlayer() {
+        // Personaje encapuchado negro con detalles naranja (Estética Imagen 2 y 3: Vista trasera corriendo)
+        let px = playerX;
+        let py = V_HEIGHT - 120;
+
+        ctx.save();
+        ctx.translate(px, py);
+
+        // Sombra en el suelo
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.beginPath();
+        ctx.ellipse(0, 50, 20, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Estela o partículas de movimiento rápido
+        if (gameState === STATE_FINAL_RUSH) {
+            ctx.fillStyle = '#FF8C00';
+            ctx.fillRect(-15, 20, 30, 4);
+        }
+
+        // Cuerpo / Chaqueta negra
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(-12, -25, 24, 38);
+
+        // Detalles de armadura / líneas naranja en el traje
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(-10, -15, 20, 4);
+        ctx.fillRect(-8, -5, 16, 3);
+
+        // Mochila táctica
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(-10, -20, 20, 15);
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(-8, -18, 16, 3);
+
+        // Capucha / Cabeza de espaldas
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(-10, -42, 20, 20);
+        // Borde de la capucha naranja
+        ctx.strokeStyle = '#FF8C00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-10, -42, 20, 20);
+
+        // Brazos / Movimiento de correr
+        let armOffset = Math.sin(gameTime * 0.3) * 6;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-18, -20 + armOffset, 6, 22);
+        ctx.fillRect(12, -20 - armOffset, 6, 22);
+
+        // Piernas
+        let legOffset = Math.cos(gameTime * 0.3) * 8;
+        ctx.fillRect(-10, 13 + legOffset, 7, 25);
+        ctx.fillRect(3, 13 - legOffset, 7, 25);
+
+        ctx.restore();
+    }
+
+    function renderVaultDoor() {
+        // Puerta gigante metálica pixelada abriéndose con luz naranja (Estética Imagen 4 y 5)
+        let progress = Math.min(1, (3500 - (targetDistance <= 0 ? 0 : 0)) / 3500);
+        
+        ctx.fillStyle = '#0a0502';
+        ctx.fillRect(40, 100, V_WIDTH - 80, 300);
+
+        // Marco pesado de la bóveda
+        ctx.strokeStyle = '#FF8C00';
+        ctx.lineWidth = 6;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#FF8C00';
+        ctx.strokeRect(40, 100, V_WIDTH - 80, 300);
+        ctx.shadowBlur = 0;
+
+        // Luz cegadora saliendo del centro de la puerta
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillRect(V_WIDTH/2 - 40, 180, 80, 140);
+
+        // Texto épico superior
+        ctx.fillStyle = '#FF8C00';
+        ctx.font = 'bold 14px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText("FINAL RUSH", V_WIDTH/2, 135);
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillText("UNLOCKED COMPLETE", V_WIDTH/2, 155);
+    }
+
+    function renderParticles() {
+        particleSystem.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+    }
+
+    // --- CONTROLES Y EVENTOS TÁCTILES ---
+    window.addEventListener('keydown', (e) => {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+
+        if (e.key === 'ArrowLeft' || e.key === 'a') {
+            if (playerLane > 0) {
+                playerLane--;
+                playerTargetX = getLaneX(playerLane);
+            }
+        } else if (e.key === 'ArrowRight' || e.key === 'd') {
+            if (playerLane < 2) {
+                playerLane++;
+                playerTargetX = getLaneX(playerLane);
+            }
+        }
+    });
+
+    // Swipe táctil para dispositivos móviles
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+    }, {passive: true});
+
+    canvas.addEventListener('touchend', (e) => {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+        if (e.changedTouches.length === 0) return;
+
+        let touchEndX = e.changedTouches[0].clientX;
+        let touchEndY = e.changedTouches[0].clientY;
+
+        let diffX = touchEndX - touchStartX;
+        let diffY = touchEndY - touchStartY;
+
+        // Determinar si fue swipe horizontal principal
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+            if (diffX > 0) {
+                // Swipe Derecha
+                if (playerLane < 2) {
+                    playerLane++;
+                    playerTargetX = getLaneX(playerLane);
+                }
+            } else {
+                // Swipe Izquierda
+                if (playerLane > 0) {
+                    playerLane--;
+                    playerTargetX = getLaneX(playerLane);
+                }
+            }
+        }
+    }, {passive: true});
+
+    // Control por clics en pantalla dividida (izq/der) para PC / Tap fácil móvil
+    canvas.addEventListener('click', (e) => {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+
+        if (clickX < rect.width / 2) {
+            if (playerLane > 0) {
+                playerLane--;
+                playerTargetX = getLaneX(playerLane);
+            }
+        } else {
+            if (playerLane < 2) {
+                playerLane++;
+                playerTargetX = getLaneX(playerLane);
+            }
+        }
+    });
+
+    // --- GESTIÓN DE PANTALLAS Y BOTONES ---
+    const screenMenu = document.getElementById('screen-menu');
+    const screenGameover = document.getElementById('screen-gameover');
+    const screenWin = document.getElementById('screen-win');
+    const hudElement = document.getElementById('hud');
+    const codeDisplayElement = document.getElementById('code-display');
+
+    document.getElementById('btn-play').addEventListener('click', startGame);
+    document.getElementById('btn-retry').addEventListener('click', startGame);
+    document.getElementById('btn-replay').addEventListener('click', startGame);
+
+    function startGame() {
+        screenMenu.classList.add('hidden');
+        screenGameover.classList.add('hidden');
+        screenWin.classList.add('hidden');
+        hudElement.classList.remove('hidden');
+        codeDisplayElement.classList.remove('hidden');
+
+        gameState = STATE_PLAYING;
+        initGame();
+    }
+
+    function gameOver() {
+        gameState = STATE_GAMEOVER;
+        hudElement.classList.add('hidden');
+        codeDisplayElement.classList.add('hidden');
+        screenGameover.classList.remove('hidden');
+
+        let collectedCount = collectedCode.filter(Boolean).length;
+        document.getElementById('go-stats').innerHTML = `
+            SCORE: ${score}<br>
+            DISTANCIA: ${Math.floor(distance)}m<br>
+            CÓDIGO: ${collectedCount}/4 COMPLETADO
+        `;
+    }
+
+    function winGame() {
+        gameState = STATE_WIN;
+        hudElement.classList.add('hidden');
+        codeDisplayElement.classList.add('hidden');
+        screenWin.classList.remove('hidden');
+
+        document.getElementById('win-stats').innerHTML = `
+            LOOT +${score + 1240}<br>
+            TIME: 01:${Math.floor(gameTime/60).toString().padStart(2,'0')}:${Math.floor(gameTime%60).toString().padStart(2,'0')}<br>
+            STEALTH RATING: S+
+        `;
+    }
+
+    // --- BUCLE PRINCIPAL DE JUEGO ---
+    let lastTime = 0;
+    function mainLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        let dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        updateGameLogic(dt);
+        render();
+
+        requestAnimationFrame(mainLoop);
+    }
+
+    requestAnimationFrame(mainLoop);
+</script>
+
+</body>
+</html>
