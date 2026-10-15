@@ -61,7 +61,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 30px 20px;
-            background: rgba(0, 0, 0, 0.92);
+            background: rgba(0, 0, 0, 0.94);
             z-index: 10;
             text-align: center;
         }
@@ -71,11 +71,11 @@
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 26px;
             color: #FF8C00;
             text-shadow: 3px 3px #000, 0 0 15px rgba(255, 140, 0, 0.7);
             line-height: 1.4;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         .subtitle {
@@ -110,9 +110,9 @@
             line-height: 1.8;
             background: rgba(255, 140, 0, 0.1);
             border: 2px dashed #FF8C00;
-            padding: 15px;
+            padding: 12px;
             width: 100%;
-            margin: 10px 0;
+            margin: 5px 0;
         }
 
         #hud {
@@ -120,7 +120,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -129,7 +129,7 @@
             font-size: 9px;
             text-shadow: 2px 2px #000;
             border-bottom: 2px solid rgba(255, 140, 0, 0.3);
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
         }
 
         .hud-box {
@@ -140,7 +140,7 @@
 
         #code-display {
             position: absolute;
-            bottom: 15px;
+            bottom: 60px;
             left: 0;
             width: 100%;
             display: flex;
@@ -151,14 +151,14 @@
         }
 
         .code-digit {
-            width: 35px;
-            height: 45px;
+            width: 32px;
+            height: 40px;
             border: 2px solid #FF8C00;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
             color: #442200;
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
         }
@@ -168,6 +168,36 @@
             border-color: #FF8C00;
             text-shadow: 0 0 8px #FF8C00;
             background: rgba(255, 140, 0, 0.2);
+        }
+
+        /* Botones táctiles virtuales fijos abajo para asegurar movimiento en móviles */
+        #touch-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 55px;
+            display: flex;
+            z-index: 6;
+            pointer-events: auto;
+        }
+
+        .touch-btn {
+            flex: 1;
+            background: rgba(255, 140, 0, 0.12);
+            border-top: 2px solid rgba(255, 140, 0, 0.4);
+            border-right: 1px solid rgba(255, 140, 0, 0.2);
+            color: #FF8C00;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Press Start 2P', monospace;
+            cursor: pointer;
+        }
+
+        .touch-btn:active {
+            background: rgba(255, 140, 0, 0.35);
         }
 
         #flash-overlay {
@@ -187,7 +217,7 @@
             font-size: 9px;
             line-height: 2;
             color: #ffaa33;
-            margin: 15px 0;
+            margin: 10px 0;
             text-align: left;
             background: rgba(255, 140, 0, 0.05);
             padding: 10px;
@@ -220,19 +250,25 @@
         <div class="code-digit" id="cd-3">?</div>
     </div>
 
+    <!-- Botones táctiles virtuales en pantalla para garantizar el cambio de carril -->
+    <div id="touch-controls" class="hidden">
+        <div class="touch-btn" id="btn-left">◀ IZQ</div>
+        <div class="touch-btn" id="btn-right">DER ▶</div>
+    </div>
+
     <!-- PANTALLA MENÚ -->
     <div id="screen-menu" class="screen">
         <div>
-            <div style="font-size: 11px; color: #FF8C00; margin-bottom: 5px; opacity: 0.8;">[ INFILTRATOR - REV 2.2 ]</div>
+            <div style="font-size: 11px; color: #FF8C00; margin-bottom: 5px; opacity: 0.8;">[ INFILTRATOR - REV 3.0 ]</div>
             <h1>NOVA<br>VAULT</h1>
             <div class="subtitle">PIXEL RUNNER</div>
         </div>
 
         <div class="instructions">
-            > DESLIZA O TOCA izq / der para moverte.<br>
+            > Toca los botones ◀ ▶ abajo o desliza.<br>
             > RECOLECTA los 4 dígitos del código.<br>
             > EVITA obstáculos y láseres.<br>
-            > Toca PLAY para iniciar sonido y juego.
+            > Presiona PLAY para activar audio y juego.
         </div>
 
         <button class="btn" id="btn-play">PLAY</button>
@@ -241,7 +277,7 @@
     <!-- PANTALLA GAME OVER -->
     <div id="screen-gameover" class="screen hidden">
         <div>
-            <h1 style="color: #ff3300; font-size: 22px; margin-top: 30px;">ACCESO<br>DENEGADO</h1>
+            <h1 style="color: #ff3300; font-size: 22px; margin-top: 20px;">ACCESO<br>DENEGADO</h1>
             <div class="subtitle" style="color: #ff3300;">SISTEMA BLOQUEADO</div>
         </div>
 
@@ -274,7 +310,7 @@
 </div>
 
 <script>
-    // --- MOTOR DE AUDIO WEB API CORREGIDO PARA MÓVIL ---
+    // --- MOTOR DE AUDIO WEB API ---
     let audioCtx = null;
     let isMuted = false;
 
@@ -287,7 +323,7 @@
                 audioCtx.resume();
             }
         } catch (e) {
-            console.log("Audio no soportado:", e);
+            console.log("Audio no disponible");
         }
     }
 
@@ -304,7 +340,7 @@
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(140, now);
                 osc.frequency.exponentialRampToValueAtTime(40, now + 0.04);
-                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.setValueAtTime(0.05, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.04);
                 osc.start(now);
                 osc.stop(now + 0.04);
@@ -334,14 +370,12 @@
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(120, now);
                 osc.frequency.linearRampToValueAtTime(40, now + 0.25);
-                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.setValueAtTime(0.2, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
                 osc.start(now);
                 osc.stop(now + 0.25);
             }
-        } catch(e) {
-            // Ignorar errores de autoplay del navegador
-        }
+        } catch(e) {}
     }
 
     // --- CANVAS Y LÓGICA DE JUEGO ---
@@ -382,7 +416,6 @@
     let cameraShake = 0;
 
     let touchStartX = 0;
-    let touchStartY = 0;
 
     function initGame() {
         score = 0;
@@ -412,7 +445,7 @@
 
     function getLaneX(lane) {
         const centerX = V_WIDTH / 2;
-        const spacing = 70;
+        const spacing = 75;
         return centerX + (lane - 1) * spacing;
     }
 
@@ -423,14 +456,14 @@
         distance += speed * 0.1;
 
         stepTimer += speed;
-        if (stepTimer > 25) {
+        if (stepTimer > 22) {
             stepTimer = 0;
             playSound('step');
             createDustParticles();
         }
 
         let diffX = playerTargetX - playerX;
-        playerX += diffX * 0.25;
+        playerX += diffX * 0.3;
         dashProgress = diffX * 0.05;
 
         if (hitTimer > 0) hitTimer -= dt;
@@ -443,7 +476,7 @@
         }
 
         spawnTimer += speed;
-        if (spawnTimer > 85) {
+        if (spawnTimer > 80) {
             spawnTimer = 0;
             spawnEntity();
         }
@@ -525,11 +558,11 @@
         triggerFlash();
         cameraShake = 5;
 
-        createExplosionParticles(playerX, V_HEIGHT - 170, '#FF8C00', 30);
+        createExplosionParticles(playerX, V_HEIGHT - 180, '#FF8C00', 30);
         floatingTexts.push({
             text: "+150",
             x: playerX,
-            y: V_HEIGHT - 200,
+            y: V_HEIGHT - 210,
             life: 1.0
         });
 
@@ -546,7 +579,7 @@
         hitTimer = 0.5;
         cameraShake = 12;
         playSound('hit');
-        createExplosionParticles(playerX, V_HEIGHT - 170, '#ff3300', 35);
+        createExplosionParticles(playerX, V_HEIGHT - 180, '#ff3300', 35);
         triggerFlashRed();
 
         if (lives <= 0) {
@@ -581,7 +614,7 @@
         for (let i = 0; i < 3; i++) {
             particleSystem.push({
                 x: playerX + (Math.random() - 0.5) * 30,
-                y: V_HEIGHT - 130 + Math.random() * 10,
+                y: V_HEIGHT - 140 + Math.random() * 10,
                 vx: (Math.random() - 0.5) * 3,
                 vy: -Math.random() * 2 - 1,
                 life: 0.8,
@@ -673,17 +706,17 @@
     }
 
     function renderTunnelPerspective() {
-        const horizonY = 200;
+        const horizonY = 190;
         const bottomY = V_HEIGHT;
         const centerX = V_WIDTH / 2;
 
         ctx.fillStyle = '#080402';
         ctx.fillRect(0, horizonY, V_WIDTH, bottomY - horizonY);
 
-        let pulseFactor = 1 + Math.sin(gameTime * 0.2) * 0.1;
+        let pulseFactor = 1 + Math.sin(gameTime * 0.25) * 0.1;
 
         for (let i = 0; i < 3; i++) {
-            let xTop = centerX + (i - 1) * 22;
+            let xTop = centerX + (i - 1) * 20;
             let xBottom = getLaneX(i);
 
             ctx.strokeStyle = '#FF8C00';
@@ -697,25 +730,25 @@
             ctx.shadowBlur = 0;
         }
 
-        let numScale = 1.0 + Math.sin(gameTime * 0.15) * 0.15;
+        let numScale = 1.0 + Math.sin(gameTime * 0.2) * 0.15;
         ctx.save();
-        ctx.font = `bold ${Math.floor(24 * numScale)}px "Press Start 2P", monospace`;
-        ctx.fillStyle = 'rgba(255, 140, 0, 0.35)';
+        ctx.font = `bold ${Math.floor(22 * numScale)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
         ctx.textAlign = 'center';
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#FF8C00';
 
         let sampleNums = ['07', '08', '09'];
         for (let i = 0; i < 3; i++) {
-            let lx = centerX + (i - 1) * 55;
-            let ly = horizonY + 75;
+            let lx = centerX + (i - 1) * 60;
+            let ly = horizonY + 70;
             ctx.fillText(sampleNums[i], lx, ly);
         }
         ctx.restore();
     }
 
     function renderEntities() {
-        const horizonY = 200;
+        const horizonY = 190;
         const bottomY = V_HEIGHT;
 
         entities.forEach(ent => {
@@ -728,11 +761,11 @@
             if (ent.type === 'digit') {
                 ctx.save();
                 ctx.translate(x, y);
-                ctx.scale(scale * (1 + Math.sin(gameTime*0.3)*0.1), scale * (1 + Math.sin(gameTime*0.3)*0.1));
+                ctx.scale(scale * (1 + Math.sin(gameTime*0.4)*0.1), scale * (1 + Math.sin(gameTime*0.4)*0.1));
 
                 ctx.strokeStyle = '#FF8C00';
                 ctx.lineWidth = 3;
-                ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.5)';
                 ctx.shadowBlur = 14;
                 ctx.shadowColor = '#FF8C00';
                 
@@ -783,72 +816,79 @@
         });
     }
 
+    // PERSONAJE GRANDE CON ANIMACIÓN FLUIDA DE CARRERA Y CICLO DE PIERNAS/BRAZOS
     function renderPlayerUpgraded() {
         let px = playerX;
-        let py = V_HEIGHT - 135;
+        let py = V_HEIGHT - 130;
 
         ctx.save();
         ctx.translate(px, py);
         
         ctx.rotate(dashProgress * 0.15);
 
-        if (Math.abs(dashProgress) > 0.5) {
-            ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
-            ctx.fillRect(-40 - dashProgress * 15, -20, 30, 60);
+        if (Math.abs(dashProgress) > 0.4) {
+            ctx.fillStyle = 'rgba(255, 140, 0, 0.5)';
+            ctx.fillRect(-45 - dashProgress * 15, -25, 35, 70);
         }
 
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillStyle = 'rgba(0,0,0,0.9)';
         ctx.beginPath();
-        ctx.ellipse(0, 62, 28, 10, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 58, 30, 10, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        if (hitTimer > 0 && Math.floor(gameTime * 20) % 2 === 0) {
+        if (hitTimer > 0 && Math.floor(gameTime * 25) % 2 === 0) {
             ctx.fillStyle = '#ff3300';
         } else {
             ctx.fillStyle = '#111111';
         }
 
-        let legCycle = Math.sin(gameTime * 12);
-        let armCycle = Math.cos(gameTime * 12);
+        let legCycle = Math.sin(gameTime * 16);
+        let armCycle = Math.cos(gameTime * 16);
 
-        ctx.fillRect(-22, -45, 44, 65);
+        // Torso / Chaqueta
+        ctx.fillRect(-24, -45, 48, 65);
 
+        // Armadura naranja
         ctx.fillStyle = hitTimer > 0 ? '#ff6600' : '#FF8C00';
-        ctx.fillRect(-18, -32, 36, 8);
-        ctx.fillRect(-15, -18, 30, 6);
-        ctx.fillRect(-18, -48, 36, 6);
+        ctx.fillRect(-20, -32, 40, 8);
+        ctx.fillRect(-16, -18, 32, 6);
+        ctx.fillRect(-20, -48, 40, 6);
 
+        // Mochila
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(-16, -38, 32, 24);
+        ctx.fillRect(-18, -38, 36, 26);
         ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-4, -36, 8, 4);
+        ctx.fillRect(-5, -36, 10, 4);
 
+        // Capucha y Visor
         ctx.fillStyle = hitTimer > 0 ? '#ff3300' : '#111111';
-        ctx.fillRect(-18, -75, 36, 32);
+        ctx.fillRect(-20, -78, 40, 33);
         ctx.strokeStyle = '#FF8C00';
         ctx.lineWidth = 3;
-        ctx.strokeRect(-18, -75, 36, 32);
+        ctx.strokeRect(-20, -78, 40, 33);
 
         ctx.fillStyle = '#FF8C00';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = '#FF8C00';
-        ctx.fillRect(-12, -65, 24, 8);
+        ctx.fillRect(-14, -66, 28, 9);
         ctx.shadowBlur = 0;
 
+        // Brazos
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(-32, -30 + armCycle * 10, 10, 35);
-        ctx.fillRect(22, -30 - armCycle * 10, 10, 35);
+        ctx.fillRect(-35, -30 + armCycle * 12, 11, 38);
+        ctx.fillRect(24, -30 - armCycle * 12, 11, 38);
         ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-32, 5 + armCycle * 10, 10, 8);
-        ctx.fillRect(22, 5 - armCycle * 10, 10, 8);
+        ctx.fillRect(-35, 6 + armCycle * 12, 11, 8);
+        ctx.fillRect(24, 6 - armCycle * 12, 11, 8);
 
+        // Piernas
         ctx.fillStyle = '#111111';
-        ctx.fillRect(-16, 20 + legCycle * 12, 12, 42);
-        ctx.fillRect(4, 20 - legCycle * 12, 12, 42);
+        ctx.fillRect(-18, 20 + legCycle * 14, 13, 40);
+        ctx.fillRect(5, 20 - legCycle * 14, 13, 40);
 
         ctx.fillStyle = '#FF8C00';
-        ctx.fillRect(-16, 45 + legCycle * 12, 12, 14);
-        ctx.fillRect(4, 45 - legCycle * 12, 12, 14);
+        ctx.fillRect(-18, 46 + legCycle * 14, 13, 14);
+        ctx.fillRect(5, 46 - legCycle * 14, 13, 14);
 
         ctx.restore();
     }
@@ -889,80 +929,57 @@
         ctx.fillText("UNLOCKED COMPLETE", V_WIDTH/2, 155);
     }
 
-    // --- CONTROLES Y EVENTOS ---
+    // --- FUNCIONES DE MOVIMIENTO ---
+    function moveLeft() {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+        if (playerLane > 0) {
+            playerLane--;
+            playerTargetX = getLaneX(playerLane);
+        }
+    }
+
+    function moveRight() {
+        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
+        if (playerLane < 2) {
+            playerLane++;
+            playerTargetX = getLaneX(playerLane);
+        }
+    }
+
+    // Controles de botones táctiles virtuales inferiores
+    document.getElementById('btn-left').addEventListener('click', (e) => { e.stopPropagation(); moveLeft(); });
+    document.getElementById('btn-right').addEventListener('click', (e) => { e.stopPropagation(); moveRight(); });
+
+    // Controles de Teclado
     window.addEventListener('keydown', (e) => {
         if (e.key === 'm' || e.key === 'M') {
             isMuted = !isMuted;
             return;
         }
-
-        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
-
-        if (e.key === 'ArrowLeft' || e.key === 'a') {
-            if (playerLane > 0) {
-                playerLane--;
-                playerTargetX = getLaneX(playerLane);
-            }
-        } else if (e.key === 'ArrowRight' || e.key === 'd') {
-            if (playerLane < 2) {
-                playerLane++;
-                playerTargetX = getLaneX(playerLane);
-            }
-        }
+        if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
+        if (e.key === 'ArrowRight' || e.key === 'd') moveRight();
     });
 
+    // Deslizamiento táctil en canvas
     canvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 0) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }
+        if (e.touches.length > 0) touchStartX = e.touches[0].clientX;
     }, {passive: true});
 
     canvas.addEventListener('touchend', (e) => {
-        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
         if (e.changedTouches.length === 0) return;
-
-        let touchEndX = e.changedTouches[0].clientX;
-        let diffX = touchEndX - touchStartX;
-
-        if (Math.abs(diffX) > 30) {
-            if (diffX > 0) {
-                if (playerLane < 2) {
-                    playerLane++;
-                    playerTargetX = getLaneX(playerLane);
-                }
-            } else {
-                if (playerLane > 0) {
-                    playerLane--;
-                    playerTargetX = getLaneX(playerLane);
-                }
-            }
+        let diffX = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(diffX) > 25) {
+            if (diffX > 0) moveRight();
+            else moveLeft();
         }
     }, {passive: true});
-
-    canvas.addEventListener('click', (e) => {
-        if (gameState !== STATE_PLAYING && gameState !== STATE_FINAL_RUSH) return;
-        const rect = canvas.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-
-        if (clickX < rect.width / 2) {
-            if (playerLane > 0) {
-                playerLane--;
-                playerTargetX = getLaneX(playerLane);
-            }
-        } else {
-            if (playerLane < 2) {
-                playerLane++;
-                playerTargetX = getLaneX(playerLane);
-            }
-        }
-    });
 
     const screenMenu = document.getElementById('screen-menu');
     const screenGameover = document.getElementById('screen-gameover');
     const screenWin = document.getElementById('screen-win');
     const hudElement = document.getElementById('hud');
     const codeDisplayElement = document.getElementById('code-display');
+    const touchControlsElement = document.getElementById('touch-controls');
 
     document.getElementById('btn-play').addEventListener('click', startGame);
     document.getElementById('btn-retry').addEventListener('click', startGame);
@@ -975,6 +992,7 @@
         screenWin.classList.add('hidden');
         hudElement.classList.remove('hidden');
         codeDisplayElement.classList.remove('hidden');
+        touchControlsElement.classList.remove('hidden');
 
         gameState = STATE_PLAYING;
         initGame();
@@ -984,6 +1002,7 @@
         gameState = STATE_GAMEOVER;
         hudElement.classList.add('hidden');
         codeDisplayElement.classList.add('hidden');
+        touchControlsElement.classList.add('hidden');
         screenGameover.classList.remove('hidden');
 
         let collectedCount = collectedCode.filter(Boolean).length;
@@ -998,6 +1017,7 @@
         gameState = STATE_WIN;
         hudElement.classList.add('hidden');
         codeDisplayElement.classList.add('hidden');
+        touchControlsElement.classList.add('hidden');
         screenWin.classList.remove('hidden');
 
         document.getElementById('win-stats').innerHTML = `
@@ -1011,9 +1031,10 @@
     function mainLoop(timestamp) {
         if (!lastTime) lastTime = timestamp;
         let dt = (timestamp - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.016; // Evitar saltos de tiempo
         lastTime = timestamp;
 
-        // Se incrementa siempre para que las animaciones corran de inmediato al iniciar
+        // El tiempo avanza constantemente para mantener la animación activa siempre
         gameTime += dt;
 
         updateGameLogic(dt);
