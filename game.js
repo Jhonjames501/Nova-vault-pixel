@@ -1,4 +1,4 @@
-import { V_WIDTH, V_HEIGHT, LANE_COUNT, STATE_PLAYING, STATE_FINAL_RUSH, STATE_GAMEOVER, STATE_WIN } from './config.js';
+import { V_WIDTH, V_HEIGHT, LANE_COUNT, STATE_PLAYING, STATE_FINAL_RUSH, STATE_WIN } from './config.js';
 import { getLaneX } from './lanes.js';
 import { renderPlayerAdvanced } from './character.js';
 import { spawnEntity } from './collectibles.js';
@@ -9,7 +9,7 @@ export class GameManager {
         this.distance = 0;
         this.lives = 3;
         this.targetDistance = 420;
-        this.playerLane = 2; // Centro para 5 carriles (0, 1, 2, 3, 4)
+        this.playerLane = 2;
         this.playerX = getLaneX(this.playerLane);
         this.playerTargetX = this.playerX;
         this.speed = 4.5;
@@ -75,7 +75,6 @@ export class GameManager {
             spawnEntity(this.gameState, this.targetCode, this.collectedCode, this.entities);
         }
 
-        // Actualizar entidades
         for (let i = this.entities.length - 1; i >= 0; i--) {
             let ent = this.entities[i];
             ent.z -= this.speed;
@@ -97,7 +96,6 @@ export class GameManager {
             }
         }
 
-        // Partículas
         for (let i = this.particleSystem.length - 1; i >= 0; i--) {
             let p = this.particleSystem[i];
             p.x += p.vx;
@@ -106,7 +104,6 @@ export class GameManager {
             if (p.life <= 0) this.particleSystem.splice(i, 1);
         }
 
-        // Textos flotantes
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             let ft = this.floatingTexts[i];
             ft.y -= 1.5;
@@ -186,7 +183,6 @@ export class GameManager {
         ctx.fillStyle = '#050200';
         ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
 
-        // Túnel con perspectiva de 5 carriles (Imagen 2)
         const horizonY = 190;
         const bottomY = V_HEIGHT;
         const centerX = V_WIDTH / 2;
@@ -196,7 +192,6 @@ export class GameManager {
 
         let pulseFactor = 1 + Math.sin(this.gameTime * 0.2) * 0.1;
 
-        // Dibujar 5 líneas de carril
         for (let i = 0; i < LANE_COUNT; i++) {
             let xTop = centerX + (i - 2) * 18;
             let xBottom = getLaneX(i);
@@ -212,7 +207,6 @@ export class GameManager {
             ctx.shadowBlur = 0;
         }
 
-        // Renderizar Entidades (Diamantes 9-8-7 con números y obstáculos)
         this.entities.forEach(ent => {
             let scale = 1 / (ent.z * 0.003 + 1);
             if (scale < 0 || scale > 3) return;
@@ -263,16 +257,13 @@ export class GameManager {
             }
         });
 
-        // Personaje Táctico Avanzado (Imagen 1)
         renderPlayerAdvanced(ctx, this.playerX, V_HEIGHT - 130, this.gameTime, this.dashProgress, this.hitTimer);
 
-        // Partículas
         this.particleSystem.forEach(p => {
             ctx.fillStyle = p.color;
             ctx.fillRect(p.x, p.y, p.size, p.size);
         });
 
-        // Textos flotantes
         this.floatingTexts.forEach(ft => {
             ctx.save();
             ctx.fillStyle = '#FF8C00';
