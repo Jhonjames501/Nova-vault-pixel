@@ -1,5 +1,5 @@
 import { GameManager } from './game.js';
-import { LANE_COUNT } from './config.js';
+import { LANE_COUNT, STATE_PLAYING, STATE_GAMEOVER, STATE_WIN } from './config.js';
 import { getLaneX } from './lanes.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -7,7 +7,6 @@ const ctx = canvas.getContext('2d');
 
 const game = new GameManager();
 
-// --- MOTOR DE AUDIO WEB API ---
 let audioCtx = null;
 let isMuted = false;
 
@@ -73,7 +72,6 @@ function playSound(type) {
     } catch(e) {}
 }
 
-// Controles para 5 carriles (Lane 0 a 4)
 function moveLeft() {
     if (game.playerLane > 0) {
         game.playerLane--;
@@ -121,9 +119,11 @@ function startGame() {
     touchControlsElement.classList.remove('hidden');
 
     game.init();
+    game.gameState = STATE_PLAYING; // <-- ESTA LÍNEA ERA LA QUE FALTABA
 }
 
 function gameOver() {
+    game.gameState = STATE_GAMEOVER;
     hudElement.classList.add('hidden');
     codeDisplayElement.classList.add('hidden');
     touchControlsElement.classList.add('hidden');
@@ -138,6 +138,7 @@ function gameOver() {
 }
 
 function winGame() {
+    game.gameState = STATE_WIN;
     hudElement.classList.add('hidden');
     codeDisplayElement.classList.add('hidden');
     touchControlsElement.classList.add('hidden');
